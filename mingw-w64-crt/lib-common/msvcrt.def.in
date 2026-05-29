@@ -435,7 +435,7 @@ F_I386(_CIsinh)
 F_I386(_CIsqrt)
 F_I386(_CItan)
 F_I386(_CItanh)
-F_I386(_CxxThrowException@8)
+F_I386(_CxxThrowException@8 == _CxxThrowException)
 F_NON_I386(_CxxThrowException)
 F_I386(_EH_prolog)
 _Getdays
@@ -445,7 +445,7 @@ _HUGE DATA
 _Strftime
 _XcptFilter
 F_X86_ANY(__CxxFrameHandler)
-F_I386(__CxxLongjmpUnwind@4)
+F_I386(__CxxLongjmpUnwind@4 == __CxxLongjmpUnwind)
 __RTCastToVoid
 __RTDynamicCast
 __RTtypeid
@@ -787,7 +787,7 @@ F_I386(_safe_fprem)
 F_I386(_safe_fprem1)
 _scalb
 _searchenv
-F_I386(_seh_longjmp_unwind@4)
+F_I386(_seh_longjmp_unwind@4 == _seh_longjmp_unwind)
 _set_error_mode
 F_X86_ANY(_set_sbh_threshold)
 F_X86_ANY(_seterrormode)
@@ -1143,6 +1143,10 @@ F_I386(_chkesp)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+; The WINNT35 i386 reference msvcrt.dll stops here. Keep later OS-version
+; additions out of the i386 import library so it only references symbols that
+; actually exist in that DLL. Compatibility aliases and emulation live below.
+#ifndef __i386__
 ; These symbols were added in Windows ME and Windows 2000 OS system versions of msvcrt.dll
 #ifdef __i386__
 ; void *__cdecl operator new[](unsigned int)
@@ -1898,6 +1902,8 @@ F_I386(_libm_sse2_sin_precise)
 F_I386(_libm_sse2_sqrt_precise)
 F_I386(_libm_sse2_tan_precise)
 
+#endif
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; This is end of the list of symbols available in the Windows OS system versions of msvcrt.dll ;
 ; All symbols defined below this line are not available in any version of msvcrt.dll library   ;
@@ -1907,7 +1913,9 @@ F_I386(_libm_sse2_tan_precise)
 ; This includes list of some symbol alises for compatibility with C99 and POSIX functions and symbols from other msvcr* libraries
 #define FIXED_SIZE_SYMBOLS
 #define NO_FIXED_SIZE_64_ALIAS
+#ifndef __i386__
 #define NO_TIME_ALIAS
+#endif
 #define NO_TMPFILE_ALIAS
 #define NO_STRCMPI_ALIAS
 #define WITH_NEXTAFTER_ALIAS
@@ -1917,8 +1925,10 @@ F_I386(_libm_sse2_tan_precise)
 #define WITH_TZ_ALIASES
 #endif
 #define WITH_ATOLL_ALIAS
+#ifndef __i386__
 #define WITH_ATOLL_L_ALIAS
 #define WITH_STRTO64_L_ALIAS
+#endif
 #ifndef __i386__
 ; i386 llabs and imaxabs alias provided by emu
 #define WITH_LLABS_ALIAS

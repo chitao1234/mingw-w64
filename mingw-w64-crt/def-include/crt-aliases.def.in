@@ -637,7 +637,7 @@ ADD_DOUBLE_UNDERSCORE(iscsym)
 ADD_UNDERSCORE(searchenv)
 #endif
 ADD_UNDERSCORE(stricoll)
-#ifndef UCRTBASE
+#if !defined(UCRTBASE) && !defined(__i386__)
 ADD_UNDERSCORE(vsnprintf_s)
 #endif
 #ifndef CRTAPP
