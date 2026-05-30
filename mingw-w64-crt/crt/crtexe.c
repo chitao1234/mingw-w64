@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <tchar.h>
+#include <excpt.h>
 #include <sect_attribs.h>
 #include <locale.h>
 #include <float.h>
@@ -18,6 +19,10 @@
 
 #if defined(__SEH__) && (!defined(__clang__) || __clang_major__ >= 7)
 #define SEH_INLINE_ASM
+#endif
+
+#if defined(__i386__) || (defined(_X86_) && !defined(__x86_64__))
+#define MINGW32_SEH_TOP_LEVEL
 #endif
 
 extern IMAGE_DOS_HEADER __ImageBase;
@@ -55,6 +60,9 @@ extern LPTOP_LEVEL_EXCEPTION_FILTER __mingw_oldexcpt_handler;
 
 extern void _pei386_runtime_relocator (void);
 long CALLBACK _gnu_exception_handler (EXCEPTION_POINTERS * exception_data);
+#ifdef MINGW32_SEH_TOP_LEVEL
+EXCEPTION_DISPOSITION __cdecl __mingw_SEH_top_level_handler(struct _EXCEPTION_RECORD *, void *, struct _CONTEXT *, void *);
+#endif
 static int duplicate_ppstrings (int ac, _TCHAR ***av);
 
 extern int _MINGW_INSTALL_DEBUG_MATHERR;
@@ -94,8 +102,14 @@ int WinMainCRTStartup (void)
 #ifdef SEH_INLINE_ASM
   asm ("\t.l_startw:\n");
 #endif
+#ifdef MINGW32_SEH_TOP_LEVEL
+  __try1 (__mingw_SEH_top_level_handler);
+#endif
   __mingw_app_type = 1;
   ret = __tmainCRTStartup ();
+#ifdef MINGW32_SEH_TOP_LEVEL
+  __except1;
+#endif
 #ifdef SEH_INLINE_ASM
   asm ("\tnop\n"
     "\t.l_endw: nop\n"
@@ -125,8 +139,14 @@ int mainCRTStartup (void)
 #ifdef SEH_INLINE_ASM
   asm ("\t.l_start:\n");
 #endif
+#ifdef MINGW32_SEH_TOP_LEVEL
+  __try1 (__mingw_SEH_top_level_handler);
+#endif
   __mingw_app_type = 0;
   ret = __tmainCRTStartup ();
+#ifdef MINGW32_SEH_TOP_LEVEL
+  __except1;
+#endif
 #ifdef SEH_INLINE_ASM
   asm ("\tnop\n"
     "\t.l_end: nop\n"

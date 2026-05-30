@@ -17,6 +17,11 @@
 
 EXCEPTION_DISPOSITION __cdecl __mingw_SEH_error_handler(struct _EXCEPTION_RECORD *, void *, struct _CONTEXT *, void *);
 
+#if defined(__i386__) || (defined(_X86_) && !defined(__x86_64__))
+#define MINGW32_SEH_TOP_LEVEL
+EXCEPTION_DISPOSITION __cdecl __mingw_SEH_top_level_handler(struct _EXCEPTION_RECORD *, void *, struct _CONTEXT *, void *);
+#endif
+
 #if defined(__x86_64__) && !defined(_MSC_VER) && !defined(__SEH__)
 
 #pragma pack(push,1)
@@ -178,6 +183,36 @@ __mingw_SEH_error_handler (struct _EXCEPTION_RECORD* ExceptionRecord,
     }
   return action;
 }
+
+#ifdef MINGW32_SEH_TOP_LEVEL
+/* Keep an i386 frame-based handler around executable startup for old NT,
+   where the process wrapper may not call the top-level filter for us. */
+EXCEPTION_DISPOSITION __cdecl
+__mingw_SEH_top_level_handler (struct _EXCEPTION_RECORD* ExceptionRecord,
+			       void *EstablisherFrame  __attribute__ ((unused)),
+			       struct _CONTEXT* ContextRecord,
+			       void *DispatcherContext __attribute__ ((unused)))
+{
+  EXCEPTION_POINTERS exception_data;
+  LONG action;
+
+  if (ExceptionRecord->ExceptionFlags & EXCEPTION_UNWIND)
+    return ExceptionContinueSearch;
+
+  exception_data.ExceptionRecord = ExceptionRecord;
+  exception_data.ContextRecord = ContextRecord;
+
+  action = UnhandledExceptionFilter (&exception_data);
+
+  if (action == EXCEPTION_CONTINUE_EXECUTION)
+    return ExceptionContinueExecution;
+
+  if (action == EXCEPTION_EXECUTE_HANDLER)
+    ExitProcess (ExceptionRecord->ExceptionCode);
+
+  return ExceptionContinueSearch;
+}
+#endif
 
 LPTOP_LEVEL_EXCEPTION_FILTER __mingw_oldexcpt_handler = NULL;
 
