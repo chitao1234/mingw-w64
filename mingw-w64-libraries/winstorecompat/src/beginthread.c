@@ -38,8 +38,14 @@ uintptr_t __cdecl _beginthreadex(void *_Security, unsigned _StackSize,
                                          unsigned (__stdcall *_StartAddress) (void *),
                                          void *_ArgList,unsigned _InitFlag,unsigned *_ThrdAddr)
 {
+    DWORD thread_id;
+    LPDWORD thread_id_ptr = (LPDWORD)_ThrdAddr;
+
+    if (_ThrdAddr == NULL)
+        thread_id_ptr = &thread_id;
+
     return (uintptr_t)CreateThread(_Security, _StackSize, (LPTHREAD_START_ROUTINE)_StartAddress,
-                        _ArgList, _InitFlag, (LPDWORD)_ThrdAddr);
+                        _ArgList, _InitFlag, thread_id_ptr);
 }
 
 void __cdecl _endthreadex(unsigned _Retval)
