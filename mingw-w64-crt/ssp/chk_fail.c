@@ -11,10 +11,20 @@
 
 void __cdecl __attribute__((__noreturn__)) __chk_fail(void);
 
+static BOOL
+is_fastfail_available (void)
+{
+  HMODULE module = GetModuleHandleA ("kernel32.dll");
+  BOOL (WINAPI *func)(DWORD) =
+    module ? (BOOL (WINAPI *)(DWORD))(void *) GetProcAddress (module, "IsProcessorFeaturePresent") : NULL;
+
+  return func ? func (PF_FASTFAIL_AVAILABLE) : FALSE;
+}
+
 void __cdecl __attribute__((__noreturn__)) __chk_fail(void) {
   static const char msg[] = "*** buffer overflow detected ***: terminated\n";
   write(STDERR_FILENO, msg, strlen(msg));
-  if (IsProcessorFeaturePresent(PF_FASTFAIL_AVAILABLE)) {
+  if (is_fastfail_available()) {
     __fastfail(FAST_FAIL_RANGE_CHECK_FAILURE);
   } else {
     TerminateProcess(GetCurrentProcess(), STATUS_STACK_BUFFER_OVERRUN);
