@@ -14,6 +14,14 @@
 
 int getntptimeofday (struct timespec *, struct timezone *);
 
+static void WINAPI fallback_GetSystemTimeAsFileTime (LPFILETIME lpSystemTimeAsFileTime)
+{
+  SYSTEMTIME st;
+
+  GetSystemTime (&st);
+  SystemTimeToFileTime (&st, lpSystemTimeAsFileTime);
+}
+
 int getntptimeofday (struct timespec *tp, struct timezone *z)
 {
   int res = 0;
@@ -50,10 +58,14 @@ int getntptimeofday (struct timespec *tp, struct timezone *z)
     if (get_time == NULL) {
       /* Use GetSystemTimePreciseAsFileTime() if available (Windows 8 or later) */
       get_time = (GetSystemTimeAsFileTime_t)(intptr_t) GetProcAddress (
-        GetModuleHandle ("kernel32.dll"),
+        GetModuleHandleA ("kernel32.dll"),
         "GetSystemTimePreciseAsFileTime"); /* <1us precision on Windows 10 */
       if (get_time == NULL)
-        get_time = GetSystemTimeAsFileTime; /* >15ms precision on Windows 10 */
+        get_time = (GetSystemTimeAsFileTime_t)(intptr_t) GetProcAddress (
+          GetModuleHandleA ("kernel32.dll"),
+          "GetSystemTimeAsFileTime"); /* >15ms precision on Windows 10 */
+      if (get_time == NULL)
+        get_time = fallback_GetSystemTimeAsFileTime;
       __atomic_store_n (&GetSystemTimeAsFileTime_p, get_time, __ATOMIC_RELAXED);
     }
 
