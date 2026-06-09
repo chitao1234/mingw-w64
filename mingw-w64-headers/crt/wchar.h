@@ -885,9 +885,11 @@ __MINGW_ASM_CALL(__mingw_vsnwprintf);
 #ifndef _WSTDLIB_DEFINED
 #define _WSTDLIB_DEFINED
 
+#ifndef __CRTDLL__
   _CRTIMP wchar_t *__cdecl _itow(int _Value,wchar_t *_Dest,int _Radix) __MINGW_ATTRIB_DEPRECATED_SEC_WARN;
   _CRTIMP wchar_t *__cdecl _ltow(long _Value,wchar_t *_Dest,int _Radix) __MINGW_ATTRIB_DEPRECATED_SEC_WARN;
   _CRTIMP wchar_t *__cdecl _ultow(unsigned long _Value,wchar_t *_Dest,int _Radix) __MINGW_ATTRIB_DEPRECATED_SEC_WARN;
+#endif
   _CRTIMP double __cdecl _wcstod_l(const wchar_t * __restrict__ _Str,wchar_t ** __restrict__ _EndPtr,_locale_t _Locale);
 
   double __cdecl __mingw_wcstod(const wchar_t * __restrict__ _Str,wchar_t ** __restrict__ _EndPtr);
@@ -1206,4 +1208,3 @@ void __cdecl __mingw_str_free(void *ptr);
 #include <sec_api/wchar_s.h>
 
 #endif /* _INC_WCHAR */
-

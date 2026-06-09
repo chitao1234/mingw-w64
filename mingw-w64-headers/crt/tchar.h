@@ -242,9 +242,11 @@ extern "C" {
 #define _tstoi_l _wtoi_l
 #define _tstoi64_l _wtoi64_l
 
+#ifndef __CRTDLL__
 #define _itot _itow
 #define _ltot _ltow
 #define _ultot _ultow
+#endif
 #define _ttof _wtof
 #define _ttoi _wtoi
 #define _ttol _wtol
