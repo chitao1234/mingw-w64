@@ -1130,13 +1130,14 @@ wscanf
 
 ; These symbols were added in Microsoft Visual C++ 5.0 SP1 and Windows 98 First Edition OS system versions of msvcrt.dll
 ; They are not available in Microsoft Visual C++ 4.2, nor in 5.0 and neither in Windows NT 4.0 OS system version
-F_I386(__p__mbcasemap) ; x64, arm32 and arm64 __p__mbcasemap provided by emu
-_mbcasemap DATA
+; The checked 32-bit VC5 msvcrt_vc5.dll does not export these.
+; F_I386(__p__mbcasemap) ; x64, arm32 and arm64 __p__mbcasemap provided by emu
+F_NON_I386(_mbcasemap DATA)
 
 ; These symbols were added in Microsoft Visual C++ 6.0 and Windows 98 Second Edition OS system versions of msvcrt.dll
-F_X86_ANY(__lc_collate_cp DATA)
-__unDNameEx
-F_I386(_chkesp)
+F_X64(__lc_collate_cp DATA)
+F_NON_I386(__unDNameEx)
+; F_I386(_chkesp) ; not exported by the checked 32-bit VC5 msvcrt_vc5.dll
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; This is end of the list of symbols available in the original Microsoft Visual C++ versions of msvcrt.dll ;
