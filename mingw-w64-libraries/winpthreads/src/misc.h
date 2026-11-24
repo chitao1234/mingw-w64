@@ -92,7 +92,12 @@ unsigned long long _pthread_rel_time_in_ms(const struct _timespec64 *ts);
 unsigned long _pthread_wait_for_single_object (void *handle, unsigned long timeout);
 unsigned long _pthread_wait_for_multiple_objects (unsigned long count, void **handles, unsigned int all, unsigned long timeout);
 
+BOOL _pthread_get_time_increment (PDWORD increment);
+extern void (WINAPI *_pthread_get_system_time_as_file_time) (LPFILETIME);
 extern void (WINAPI *_pthread_get_system_time_best_as_file_time) (LPFILETIME);
+extern BOOL (WINAPI *_pthread_try_enter_critical_section) (LPCRITICAL_SECTION);
+extern BOOL (WINAPI *_pthread_get_process_affinity_mask) (HANDLE, PDWORD_PTR, PDWORD_PTR);
+extern BOOL (WINAPI *_pthread_set_process_affinity_mask) (HANDLE, DWORD_PTR);
 extern HRESULT (WINAPI *_pthread_set_thread_description) (HANDLE, PCWSTR);
 
 #if defined(__GNUC__) || defined(__clang__)

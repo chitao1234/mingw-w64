@@ -63,7 +63,7 @@ static int __clock_getres(clockid_t clock_id, struct _timespec64 *res)
 {
     clockid_t id = clock_id;
 
-    if (id == CLOCK_REALTIME && _pthread_get_system_time_best_as_file_time == GetSystemTimeAsFileTime)
+    if (id == CLOCK_REALTIME && _pthread_get_system_time_best_as_file_time == _pthread_get_system_time_as_file_time)
         id = CLOCK_REALTIME_COARSE; /* GetSystemTimePreciseAsFileTime() not available */
 
     switch(id) {
@@ -87,12 +87,14 @@ static int __clock_getres(clockid_t clock_id, struct _timespec64 *res)
     case CLOCK_PROCESS_CPUTIME_ID:
     case CLOCK_THREAD_CPUTIME_ID:
         {
-            DWORD   timeAdjustment, timeIncrement;
-            BOOL    isTimeAdjustmentDisabled;
+            DWORD timeIncrement;
+            unsigned __int64 nanoseconds;
 
-            (void) GetSystemTimeAdjustment(&timeAdjustment, &timeIncrement, &isTimeAdjustmentDisabled);
-            res->tv_sec = 0;
-            res->tv_nsec = timeIncrement * 100;
+            if (!_pthread_get_time_increment (&timeIncrement))
+                return lc_set_errno(EINVAL);
+            nanoseconds = (unsigned __int64) timeIncrement * 100;
+            res->tv_sec = nanoseconds / POW10_9;
+            res->tv_nsec = nanoseconds % POW10_9;
 
             return 0;
         }
@@ -143,7 +145,7 @@ static int __clock_gettime(clockid_t clock_id, struct _timespec64 *tp)
 
     case CLOCK_REALTIME_COARSE:
         {
-            GetSystemTimeAsFileTime(&ct.ft);
+            _pthread_get_system_time_as_file_time(&ct.ft);
             t = ct.u64 - DELTA_EPOCH_IN_100NS;
             tp->tv_sec = t / POW10_7;
             tp->tv_nsec = ((int) (t % POW10_7)) * 100;
