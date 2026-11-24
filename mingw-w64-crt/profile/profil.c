@@ -102,7 +102,9 @@ profile_off (struct profinfo *p)
 {
   if (p->profthr)
     {
-      SignalObjectAndWait (p->quitevt, p->profthr, INFINITE, FALSE);
+      /* SignalObjectAndWait is not available on NT 3.x. */
+      SetEvent (p->quitevt);
+      WaitForSingleObject (p->profthr, INFINITE);
       CloseHandle (p->quitevt);
       CloseHandle (p->profthr);
     }
