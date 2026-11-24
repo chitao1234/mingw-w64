@@ -32,7 +32,104 @@
 /* internal header files */
 #include "misc.h"
 
-void (WINAPI *_pthread_get_system_time_best_as_file_time) (LPFILETIME) = NULL;
+/* Keep the complete native layouts: NT 3.1 requires exactly 44 and 24 bytes,
+ * respectively, on i386. Some SDKs expose only their reserved fields. */
+typedef struct {
+    ULONG Reserved;
+    ULONG MaximumIncrement;
+    ULONG PhysicalPageSize;
+    ULONG NumberOfPhysicalPages;
+    ULONG LowestPhysicalPage;
+    ULONG HighestPhysicalPage;
+    ULONG AllocationGranularity;
+    ULONG_PTR LowestUserAddress;
+    ULONG_PTR HighestUserAddress;
+    ULONG_PTR ActiveProcessors;
+    CCHAR NumberOfProcessors;
+} pthread_system_basic_information;
+
+typedef struct {
+    LONG ExitStatus;
+    PVOID PebBaseAddress;
+    ULONG_PTR AffinityMask;
+    LONG BasePriority;
+    ULONG_PTR UniqueProcessId;
+    ULONG_PTR InheritedFromUniqueProcessId;
+} pthread_process_basic_information;
+
+static LONG (NTAPI *query_system_time) (PLARGE_INTEGER);
+static LONG (NTAPI *query_system_information) (ULONG, PVOID, ULONG, PULONG);
+static LONG (NTAPI *query_information_process) (HANDLE, ULONG, PVOID, ULONG, PULONG);
+static BOOL (WINAPI *get_system_time_adjustment) (PDWORD, PDWORD, PBOOL);
+
+static void WINAPI
+fallback_get_system_time_as_file_time (LPFILETIME ft)
+{
+    LARGE_INTEGER time;
+    SYSTEMTIME st;
+
+    if (query_system_time && query_system_time (&time) >= 0)
+    {
+        ft->dwLowDateTime = time.LowPart;
+        ft->dwHighDateTime = time.HighPart;
+        return;
+    }
+
+    GetSystemTime (&st);
+    SystemTimeToFileTime (&st, ft);
+}
+
+static BOOL WINAPI
+fallback_try_enter_critical_section (LPCRITICAL_SECTION cs)
+{
+    HANDLE self = (HANDLE) (ULONG_PTR) GetCurrentThreadId ();
+
+    /* NT 3.x uses the original critical-section lock count, initialized to -1.
+     * Only use this implementation when the Win32 try operation is absent. */
+    if (InterlockedCompareExchange (&cs->LockCount, 0, -1) == -1)
+    {
+        cs->OwningThread = self;
+        cs->RecursionCount = 1;
+        return TRUE;
+    }
+    if (cs->OwningThread == self)
+    {
+        InterlockedIncrement (&cs->LockCount);
+        ++cs->RecursionCount;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL WINAPI
+fallback_get_process_affinity_mask (HANDLE process, PDWORD_PTR process_mask,
+                                    PDWORD_PTR system_mask)
+{
+    pthread_process_basic_information process_info;
+    pthread_system_basic_information system_info;
+
+    /* ProcessBasicInformation and SystemBasicInformation both have class 0. */
+    if (!query_information_process || !query_system_information
+        || query_information_process (process, 0, &process_info,
+                                      sizeof (process_info), NULL) < 0
+        || query_system_information (0, &system_info,
+                                     sizeof (system_info), NULL) < 0)
+        return FALSE;
+
+    *process_mask = process_info.AffinityMask;
+    *system_mask = system_info.ActiveProcessors;
+    return TRUE;
+}
+
+void (WINAPI *_pthread_get_system_time_as_file_time) (LPFILETIME) =
+    fallback_get_system_time_as_file_time;
+void (WINAPI *_pthread_get_system_time_best_as_file_time) (LPFILETIME) =
+    fallback_get_system_time_as_file_time;
+BOOL (WINAPI *_pthread_try_enter_critical_section) (LPCRITICAL_SECTION) =
+    fallback_try_enter_critical_section;
+BOOL (WINAPI *_pthread_get_process_affinity_mask) (HANDLE, PDWORD_PTR, PDWORD_PTR) =
+    fallback_get_process_affinity_mask;
+BOOL (WINAPI *_pthread_set_process_affinity_mask) (HANDLE, DWORD_PTR) = NULL;
 static ULONGLONG (WINAPI *_pthread_get_tick_count_64) (VOID);
 HRESULT (WINAPI *_pthread_set_thread_description) (HANDLE, PCWSTR) = NULL;
 BOOL (WINAPI *_pthread_get_handle_information) (HANDLE, LPDWORD) = NULL;
@@ -46,6 +143,9 @@ __attribute__((constructor(0)))
 #endif
 static void winpthreads_init(void)
 {
+    void (WINAPI *get_time) (LPFILETIME);
+    BOOL (WINAPI *try_enter) (LPCRITICAL_SECTION);
+    BOOL (WINAPI *get_affinity) (HANDLE, PDWORD_PTR, PDWORD_PTR);
     HMODULE mod = GetModuleHandleA("kernel32.dll");
     if (mod)
     {
@@ -58,14 +158,46 @@ static void winpthreads_init(void)
         _pthread_set_thread_description =
             (HRESULT (WINAPI *)(HANDLE, PCWSTR))(void*) GetProcAddress(mod, "SetThreadDescription");
 
+        get_time = (void (WINAPI *)(LPFILETIME))(void*)
+            GetProcAddress (mod, "GetSystemTimeAsFileTime");
+        if (get_time)
+            _pthread_get_system_time_as_file_time = get_time;
+
+        get_system_time_adjustment = (BOOL (WINAPI *)(PDWORD, PDWORD, PBOOL))(void*)
+            GetProcAddress (mod, "GetSystemTimeAdjustment");
+
+        try_enter = (BOOL (WINAPI *)(LPCRITICAL_SECTION))(void*)
+            GetProcAddress (mod, "TryEnterCriticalSection");
+        if (try_enter)
+            _pthread_try_enter_critical_section = try_enter;
+
+        get_affinity = (BOOL (WINAPI *)(HANDLE, PDWORD_PTR, PDWORD_PTR))(void*)
+            GetProcAddress (mod, "GetProcessAffinityMask");
+        if (get_affinity)
+            _pthread_get_process_affinity_mask = get_affinity;
+
+        /* NT 3.x has neither this export nor the native process affinity
+         * information class used to implement it on NT 4 and later. */
+        _pthread_set_process_affinity_mask = (BOOL (WINAPI *)(HANDLE, DWORD_PTR))(void*)
+            GetProcAddress (mod, "SetProcessAffinityMask");
+
         /* <1us precision on Windows 10 */
-        _pthread_get_system_time_best_as_file_time =
-            (void (WINAPI *)(LPFILETIME))(void*) GetProcAddress(mod, "GetSystemTimePreciseAsFileTime");
+        get_time = (void (WINAPI *)(LPFILETIME))(void*)
+            GetProcAddress (mod, "GetSystemTimePreciseAsFileTime");
+        _pthread_get_system_time_best_as_file_time = get_time ? get_time :
+            _pthread_get_system_time_as_file_time;
     }
 
-    if (!_pthread_get_system_time_best_as_file_time)
-        /* >15ms precision on Windows 10 */
-        _pthread_get_system_time_best_as_file_time = GetSystemTimeAsFileTime;
+    mod = GetModuleHandleA ("ntdll.dll");
+    if (mod)
+    {
+        query_system_time = (LONG (NTAPI *)(PLARGE_INTEGER))(void*)
+            GetProcAddress (mod, "NtQuerySystemTime");
+        query_system_information = (LONG (NTAPI *)(ULONG, PVOID, ULONG, PULONG))(void*)
+            GetProcAddress (mod, "NtQuerySystemInformation");
+        query_information_process = (LONG (NTAPI *)(HANDLE, ULONG, PVOID, ULONG, PULONG))(void*)
+            GetProcAddress (mod, "NtQueryInformationProcess");
+    }
 
     /* Although SetThreadDescription lives in kernel32.dll, on Windows Server 2016,
      * Windows 10 LTSB 2016 and Windows 10 version 1607, it was only available in
@@ -102,11 +234,34 @@ extern const _PVFV __xc_t;
 const _PVFV __xc_t = winpthreads_init;
 #endif
 
+BOOL
+_pthread_get_time_increment (PDWORD increment)
+{
+    DWORD adjustment, value;
+    BOOL disabled;
+    pthread_system_basic_information info;
+
+    if (get_system_time_adjustment
+        && get_system_time_adjustment (&adjustment, &value, &disabled) && value)
+    {
+        *increment = value;
+        return TRUE;
+    }
+    if (query_system_information
+        && query_system_information (0, &info, sizeof (info), NULL) >= 0
+        && info.MaximumIncrement)
+    {
+        *increment = info.MaximumIncrement;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 unsigned long long _pthread_time_in_ms(void)
 {
     FILETIME ft;
 
-    GetSystemTimeAsFileTime(&ft);
+    _pthread_get_system_time_as_file_time (&ft);
     return (((unsigned long long)ft.dwHighDateTime << 32) + ft.dwLowDateTime
             - 0x19DB1DED53E8000ULL) / 10000ULL;
 }

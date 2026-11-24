@@ -215,7 +215,7 @@ pthread_cond_destroy (pthread_cond_t *c)
   r = do_sema_b_wait(_c->sema_b, 0, INFINITE,&_c->waiters_b_lock_,&_c->value_b);
   if (r != 0)
     return r;
-  if (!TryEnterCriticalSection (&_c->waiters_count_lock_))
+  if (!_pthread_try_enter_critical_section (&_c->waiters_count_lock_))
     {
        do_sema_b_release (_c->sema_b, 1,&_c->waiters_b_lock_,&_c->value_b);
        return EBUSY;
@@ -384,7 +384,7 @@ tryagain:
   if (r != 0)
     return r;
 
-  if (!TryEnterCriticalSection (&_c->waiters_count_lock_))
+  if (!_pthread_try_enter_critical_section (&_c->waiters_count_lock_))
   {
     r = do_sema_b_release (_c->sema_b, 1,&_c->waiters_b_lock_,&_c->value_b);
     if (r != 0)
@@ -448,7 +448,7 @@ tryagain:
   if (r != 0)
     return r;
 
-  if (!TryEnterCriticalSection (&_c->waiters_count_lock_))
+  if (!_pthread_try_enter_critical_section (&_c->waiters_count_lock_))
   {
     r = do_sema_b_release (_c->sema_b, 1,&_c->waiters_b_lock_,&_c->value_b);
     if (r != 0)
