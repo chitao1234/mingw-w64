@@ -732,7 +732,7 @@ pthread_num_processors_np(void)
   int r = 0;
   DWORD_PTR ProcessAffinityMask, SystemAffinityMask;
 
-  if (GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
+  if (_pthread_get_process_affinity_mask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
     {
       for(; ProcessAffinityMask != 0; ProcessAffinityMask >>= 1)
 	r += (ProcessAffinityMask & 1) != 0;
@@ -748,20 +748,22 @@ pthread_set_num_processors_np(int n)
 {
   DWORD_PTR ProcessAffinityMask, ProcessNewAffinityMask = 0, SystemAffinityMask;
   int r = 0;
+
+  if (!_pthread_set_process_affinity_mask)
+    return 0;
+
   /* need at least 1 */
-  n = n ? n : 1;
-  if (GetProcessAffinityMask (GetCurrentProcess (), &ProcessAffinityMask, &SystemAffinityMask))
+  n = n > 0 ? n : 1;
+  if (_pthread_get_process_affinity_mask (GetCurrentProcess (), &ProcessAffinityMask, &SystemAffinityMask))
     {
-      for (; ProcessAffinityMask != 0; ProcessAffinityMask >>= 1)
+      for (; ProcessAffinityMask != 0 && r < n; ProcessAffinityMask &= ProcessAffinityMask - 1)
 	{
-	  ProcessNewAffinityMask <<= 1;
-	  if ((ProcessAffinityMask & 1) != 0 && r < n)
-	    {
-	      ProcessNewAffinityMask |= 1;
-	      r++;
-	    }
+	  ProcessNewAffinityMask |= ProcessAffinityMask & -ProcessAffinityMask;
+	  r++;
 	}
-      SetProcessAffinityMask (GetCurrentProcess (),ProcessNewAffinityMask);
+      if (!ProcessNewAffinityMask
+          || !_pthread_set_process_affinity_mask (GetCurrentProcess (), ProcessNewAffinityMask))
+        return 0;
     }
   return r;
 }

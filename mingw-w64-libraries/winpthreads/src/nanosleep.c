@@ -22,6 +22,7 @@
 #include "pthread_time.h"
 /* internal header files */
 #include "thread.h"
+#include "misc.h"
 
 #define POW10_3                 1000
 #define POW10_4                 10000
@@ -52,7 +53,7 @@ static int __nanosleep(const struct _timespec64 *request, struct _timespec64 *re
         return -1;
     }
 
-    if (remain != NULL) GetSystemTimeAsFileTime(&_start.ft);
+    if (remain != NULL) _pthread_get_system_time_as_file_time(&_start.ft);
 
     want = u64 = request->tv_sec * POW10_3 + request->tv_nsec / POW10_6;
     while (u64 > 0 && rc == 0) {
@@ -65,7 +66,7 @@ static int __nanosleep(const struct _timespec64 *request, struct _timespec64 *re
 
     if (rc != 0) { /* WAIT_IO_COMPLETION (192) */
         if (remain != NULL) {
-            GetSystemTimeAsFileTime(&_end.ft);
+            _pthread_get_system_time_as_file_time(&_end.ft);
             real = (_end.ns100 - _start.ns100) / POW10_4;
 
             if (real >= want) u64 = 0;
