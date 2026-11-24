@@ -27,10 +27,9 @@ unsigned int* __cdecl __p__osplatform(void)
             _osplatform_ptr = (unsigned int*)GetProcAddress(msvcrt, "_osplatform");
         if (!_osplatform_ptr)
         {
-            OSVERSIONINFOA osvi;
-            osvi.dwOSVersionInfoSize = sizeof(osvi);
-            if (GetVersionExA(&osvi))
-                _osplatform_static = osvi.dwPlatformId;
+            DWORD version = GetVersion();
+            _osplatform_static = (version & 0x80000000)
+                ? VER_PLATFORM_WIN32_WINDOWS : VER_PLATFORM_WIN32_NT;
             _osplatform_ptr = &_osplatform_static;
         }
     }

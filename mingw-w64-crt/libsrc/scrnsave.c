@@ -77,7 +77,6 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
                      LPSTR CmdLine, int nCmdShow)
 {
   LPSTR p;
-  OSVERSIONINFO vi;
 
   UNREFERENCED_PARAMETER(hPrevInst);
   UNREFERENCED_PARAMETER(nCmdShow);
@@ -85,10 +84,8 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
   /* initialize */
   hMainInstance = hInst;
 
-  vi.dwOSVersionInfoSize = sizeof(vi);
-  GetVersionEx(&vi);
   /* check if we are going to check for passwords */
-  if (vi.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS)
+  if (GetVersion() & 0x80000000)
     {
       HKEY hKey;
       /* we are using windows 95 */

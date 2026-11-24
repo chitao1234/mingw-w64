@@ -14,10 +14,9 @@ unsigned int* __cdecl __p__osplatform(void)
 {
     if (!_osplatform)
     {
-        OSVERSIONINFOA osvi;
-        osvi.dwOSVersionInfoSize = sizeof(osvi);
-        if (GetVersionExA(&osvi))
-            _osplatform = osvi.dwPlatformId;
+        DWORD version = GetVersion();
+        _osplatform = (version & 0x80000000)
+            ? VER_PLATFORM_WIN32_WINDOWS : VER_PLATFORM_WIN32_NT;
     }
     return &_osplatform;
 }
