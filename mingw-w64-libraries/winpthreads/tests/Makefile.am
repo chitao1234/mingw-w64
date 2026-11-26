@@ -23,6 +23,8 @@ benchtests_benchtest3_LDADD = libbenchlib.a $(LDADD)
 benchtests_benchtest4_LDADD = libbenchlib.a $(LDADD)
 benchtests_benchtest5_LDADD = libbenchlib.a $(LDADD)
 
+misc_wait_timeout_LDADD =
+
 # TODO: fix pthread_cancel/cancel9
 #
 # pthread_exit/exit1 is skipped; exiting the main thread can be problematic,
@@ -168,7 +170,8 @@ check_PROGRAMS =               \
 	semaphore/semaphore3       \
 	semaphore/semaphore4       \
 	semaphore/semaphore4t      \
-	semaphore/semaphore5
+	semaphore/semaphore5      \
+	misc/wait_timeout
 
 TESTS = $(check_PROGRAMS)
 
