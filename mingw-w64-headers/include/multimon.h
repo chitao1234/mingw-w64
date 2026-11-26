@@ -125,11 +125,7 @@ extern "C" {
 #endif
 
   WINBOOL IsPlatformNT() {
-    OSVERSIONINFOA oi = { 0 };
-
-    oi.dwOSVersionInfoSize = sizeof (oi);
-    GetVersionExA ((OSVERSIONINFOA *) &oi);
-    return (oi.dwPlatformId == VER_PLATFORM_WIN32_NT);
+    return (GetVersion () & 0x80000000) == 0;
   }
 
   WINBOOL InitMultipleMonitorStubs(void) {
@@ -257,7 +253,7 @@ extern "C" {
 #ifdef UNICODE
 	MultiByteToWideChar (CP_ACP, 0, "DISPLAY", -1, c.ex->szDevice, (sizeof (c.ex->szDevice) / 2));
 #else
-	lstrcpyn (c.ex->szDevice, "DISPLAY", sizeof (c.ex->szDevice));
+	lstrcpyA (c.ex->szDevice, "DISPLAY");
 #endif
       }
 
@@ -313,8 +309,8 @@ extern "C" {
     MultiByteToWideChar (CP_ACP, 0, "DISPLAY", -1, lpDisplayDevice->DeviceName, (sizeof (lpDisplayDevice->DeviceName) / 2));
     MultiByteToWideChar (CP_ACP, 0, "DISPLAY", -1, lpDisplayDevice->DeviceString, (sizeof (lpDisplayDevice->DeviceString) / 2));
 #else
-    lstrcpyn ((LPTSTR)lpDisplayDevice->DeviceName, "DISPLAY", sizeof (lpDisplayDevice->DeviceName));
-    lstrcpyn ((LPTSTR)lpDisplayDevice->DeviceString, "DISPLAY", sizeof (lpDisplayDevice->DeviceString));
+    lstrcpyA (lpDisplayDevice->DeviceName, "DISPLAY");
+    lstrcpyA (lpDisplayDevice->DeviceString, "DISPLAY");
 #endif
     lpDisplayDevice->StateFlags = DISPLAY_DEVICE_ATTACHED_TO_DESKTOP | DISPLAY_DEVICE_PRIMARY_DEVICE;
 

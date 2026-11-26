@@ -61,7 +61,6 @@ extern "C" {
 #endif
 
 #ifdef WANT_GETLONGPATHNAME_WRAPPER
-#include <shlobj.h>
 
 #undef GetLongPathName
 #define GetLongPathName _GetLongPathName
@@ -69,86 +68,75 @@ extern "C" {
   extern DWORD (CALLBACK *GetLongPathName)(LPCTSTR,LPTSTR,DWORD);
 
 #ifdef COMPILE_NEWAPIS_STUBS
+  static LPTSTR Emulate_GetLongPathName_NextSeparator(LPTSTR path) {
+    while(*path && *path!=TEXT('\\')) {
+#ifndef UNICODE
+      if(IsDBCSLeadByte((BYTE)*path) && path[1])
+	++path;
+#endif
+      ++path;
+    }
+    return path;
+  }
+
   static DWORD WINAPI Emulate_GetLongPathName(LPCTSTR ptszShort,LPTSTR ptszLong,DWORD ctchBuf) {
-    LPSHELLFOLDER psfDesk;
-    HRESULT hr;
-    LPITEMIDLIST pidl;
-    TCHAR tsz[MAX_PATH];
-    DWORD dwRc;
-    LPMALLOC pMalloc;
+    TCHAR tsz[MAX_PATH],tszLong[MAX_PATH];
+    WIN32_FIND_DATA wfd;
+    LPTSTR start,end;
+    DWORD dwRc,length,count,i;
+    HANDLE hfind;
+    TCHAR separator;
+
     if(GetFileAttributes(ptszShort)==0xFFFFFFFF) return 0;
     dwRc = GetFullPathName(ptszShort,MAX_PATH,tsz,NULL);
-    if(dwRc==0) {
-    } else if(dwRc >= MAX_PATH) {
+    if(dwRc==0) return 0;
+    if(dwRc >= MAX_PATH) {
       SetLastError(ERROR_BUFFER_OVERFLOW);
-      dwRc = 0;
-    } else {
-      hr = SHGetDesktopFolder(&psfDesk);
-      if(SUCCEEDED(hr)) {
-	ULONG cwchEaten;
-#if defined(UNICODE)
-#ifdef __cplusplus
-	hr = psfDesk->ParseDisplayName(NULL,NULL,tsz,&cwchEaten,&pidl,NULL);
-#else
-	hr = psfDesk->lpVtbl->ParseDisplayName(psfDesk,NULL,NULL,tsz,&cwchEaten,&pidl,NULL);
-#endif
-#else
-	WCHAR wsz[MAX_PATH];
-
-	dwRc = MultiByteToWideChar(AreFileApisANSI() ? CP_ACP : CP_OEMCP,0,tsz,-1,wsz,MAX_PATH);
-	if(dwRc==0) {
-	  if(GetLastError()==ERROR_INSUFFICIENT_BUFFER) {
-	    SetLastError(ERROR_BUFFER_OVERFLOW);
-	  }
-	  dwRc = 0;
-	} else {
-#ifdef __cplusplus
-	  hr = psfDesk->ParseDisplayName(NULL,NULL,wsz,&cwchEaten,&pidl,NULL);
-#else
-	  hr = psfDesk->lpVtbl->ParseDisplayName(psfDesk,NULL,NULL,wsz,&cwchEaten,&pidl,NULL);
-#endif
-#endif
-	  if(FAILED(hr)) {
-	    if(HRESULT_FACILITY(hr)==FACILITY_WIN32) {
-	      SetLastError(HRESULT_CODE(hr));
-	    } else {
-	      SetLastError(ERROR_INVALID_DATA);
-	    }
-	    dwRc = 0;
-	  } else {
-	    dwRc = SHGetPathFromIDList(pidl,tsz);
-	    if(dwRc==0 && tsz[0]) {
-	      SetLastError(ERROR_INVALID_DATA);
-	    } else {
-	      dwRc = lstrlen(tsz);
-	      if(dwRc + 1 > ctchBuf) {
-		SetLastError(ERROR_INSUFFICIENT_BUFFER);
-		dwRc = dwRc + 1;
-	      } else {
-		lstrcpyn(ptszLong,tsz,ctchBuf);
-	      }
-	    }
-	    if(SUCCEEDED(SHGetMalloc(&pMalloc))) {
-#ifdef __cplusplus
-	      pMalloc->Free(pidl);
-	      pMalloc->Release();
-#else
-	      pMalloc->lpVtbl->Free(pMalloc,pidl);
-	      pMalloc->lpVtbl->Release(pMalloc);
-#endif
-	    }
-	  }
-#if !defined(UNICODE)
-	}
-#endif
-#ifdef __cplusplus
-	psfDesk->Release();
-#else
-	psfDesk->lpVtbl->Release(psfDesk);
-#endif
-      }
+      return 0;
     }
-    return dwRc;
+
+    /* Keep the drive root or UNC server and share outside the search. */
+    if(tsz[0]==TEXT('\\') && tsz[1]==TEXT('\\')) {
+      start = Emulate_GetLongPathName_NextSeparator(tsz + 2);
+      if(*start)
+	start = Emulate_GetLongPathName_NextSeparator(start + 1);
+      if(*start)
+	++start;
+    } else {
+      start = tsz + 3;
+    }
+    length = (DWORD)(start - tsz);
+    for(i = 0; i < length; ++i)
+      tszLong[i] = tsz[i];
+
+    while(*start) {
+      end = Emulate_GetLongPathName_NextSeparator(start);
+      separator = *end;
+      *end = 0;
+      hfind = FindFirstFile(tsz,&wfd);
+      *end = separator;
+      if(hfind==INVALID_HANDLE_VALUE) return 0;
+      FindClose(hfind);
+
+      count = lstrlen(wfd.cFileName);
+      if(length + count + (separator!=0) >= MAX_PATH) {
+	SetLastError(ERROR_BUFFER_OVERFLOW);
+	return 0;
+      }
+      for(i = 0; i < count; ++i)
+	tszLong[length++] = wfd.cFileName[i];
+      if(separator)
+	tszLong[length++] = separator;
+      start = separator ? end + 1 : end;
+    }
+    tszLong[length] = 0;
+
+    if(length >= ctchBuf) {
+      SetLastError(ERROR_INSUFFICIENT_BUFFER);
+      return length + 1;
+    }
+    lstrcpy(ptszLong,tszLong);
+    return length;
   }
 
   static DWORD WINAPI Probe_GetLongPathName(LPCTSTR ptszShort,LPTSTR ptszLong,DWORD ctchBuf) {
