@@ -182,7 +182,7 @@ check_PROGRAMS = benchtests/benchtest1$(EXEEXT) \
 	sched/priority2$(EXEEXT) semaphore/semaphore1$(EXEEXT) \
 	semaphore/semaphore2$(EXEEXT) semaphore/semaphore3$(EXEEXT) \
 	semaphore/semaphore4$(EXEEXT) semaphore/semaphore4t$(EXEEXT) \
-	semaphore/semaphore5$(EXEEXT)
+	semaphore/semaphore5$(EXEEXT) misc/wait_timeout$(EXEEXT)
 XFAIL_TESTS = pthread_mutex/mutex4$(EXEEXT) \
 	pthread_mutex/mutex6e$(EXEEXT) pthread_mutex/mutex6es$(EXEEXT) \
 	pthread_mutex/mutex7$(EXEEXT) pthread_mutex/mutex7e$(EXEEXT) \
@@ -275,6 +275,9 @@ misc_tryentercs2_SOURCES = misc/tryentercs2.c
 misc_tryentercs2_OBJECTS = misc/tryentercs2.$(OBJEXT)
 misc_tryentercs2_LDADD = $(LDADD)
 misc_tryentercs2_DEPENDENCIES = $(top_builddir)/libwinpthread.la
+misc_wait_timeout_SOURCES = misc/wait_timeout.c
+misc_wait_timeout_OBJECTS = misc/wait_timeout.$(OBJEXT)
+misc_wait_timeout_DEPENDENCIES =
 pthread_barrier_barrier1_SOURCES = pthread_barrier/barrier1.c
 pthread_barrier_barrier1_OBJECTS = pthread_barrier/barrier1.$(OBJEXT)
 pthread_barrier_barrier1_LDADD = $(LDADD)
@@ -838,6 +841,7 @@ am__depfiles_remade = benchtests/$(DEPDIR)/benchlib.Po \
 	exceptions/$(DEPDIR)/exception2.Po \
 	exceptions/$(DEPDIR)/exception3.Po misc/$(DEPDIR)/loadfree.Po \
 	misc/$(DEPDIR)/tryentercs.Po misc/$(DEPDIR)/tryentercs2.Po \
+	misc/$(DEPDIR)/wait_timeout.Po \
 	pthread_barrier/$(DEPDIR)/barrier1.Po \
 	pthread_barrier/$(DEPDIR)/barrier2.Po \
 	pthread_barrier/$(DEPDIR)/barrier3.Po \
@@ -983,33 +987,33 @@ SOURCES = $(libbenchlib_a_SOURCES) benchtests/benchtest1.c \
 	clock/t_nanosleep.c exceptions/exception1.c \
 	exceptions/exception2.c exceptions/exception3.c \
 	misc/loadfree.c misc/tryentercs.c misc/tryentercs2.c \
-	pthread_barrier/barrier1.c pthread_barrier/barrier2.c \
-	pthread_barrier/barrier3.c pthread_barrier/barrier4.c \
-	pthread_barrier/barrier5.c pthread_barrier/barrier6.c \
-	pthread_cancel/cancel1.c pthread_cancel/cancel2.c \
-	pthread_cancel/cancel3.c pthread_cancel/cancel4.c \
-	pthread_cancel/cancel5.c pthread_cancel/cancel6a.c \
-	pthread_cancel/cancel6d.c pthread_cancel/cancel7.c \
-	pthread_cancel/cancel8.c pthread_cleanup/cleanup0.c \
-	pthread_cleanup/cleanup1.c pthread_cleanup/cleanup2.c \
-	pthread_cleanup/cleanup3.c pthread_cond/condvar1.c \
-	pthread_cond/condvar1_1.c pthread_cond/condvar1_2.c \
-	pthread_cond/condvar2.c pthread_cond/condvar2_1.c \
-	pthread_cond/condvar3.c pthread_cond/condvar3_1.c \
-	pthread_cond/condvar3_2.c pthread_cond/condvar3_3.c \
-	pthread_cond/condvar4.c pthread_cond/condvar5.c \
-	pthread_cond/condvar6.c pthread_cond/condvar7.c \
-	pthread_cond/condvar8.c pthread_cond/condvar9.c \
-	pthread_create/create1.c pthread_create/create2.c \
-	pthread_create/create3.c pthread_exit/exit2.c \
-	pthread_exit/exit3.c pthread_exit/exit4.c pthread_exit/exit5.c \
-	pthread_join/join1.c pthread_join/join2.c pthread_join/join3.c \
-	pthread_misc/context1.c pthread_misc/count1.c \
-	pthread_misc/delay1.c pthread_misc/delay2.c \
-	pthread_misc/detach1.c pthread_misc/equal1.c \
-	pthread_misc/errno1.c pthread_misc/eyal1.c \
-	pthread_misc/inherit1.c pthread_misc/kill1.c \
-	pthread_misc/name.c pthread_misc/reuse1.c \
+	misc/wait_timeout.c pthread_barrier/barrier1.c \
+	pthread_barrier/barrier2.c pthread_barrier/barrier3.c \
+	pthread_barrier/barrier4.c pthread_barrier/barrier5.c \
+	pthread_barrier/barrier6.c pthread_cancel/cancel1.c \
+	pthread_cancel/cancel2.c pthread_cancel/cancel3.c \
+	pthread_cancel/cancel4.c pthread_cancel/cancel5.c \
+	pthread_cancel/cancel6a.c pthread_cancel/cancel6d.c \
+	pthread_cancel/cancel7.c pthread_cancel/cancel8.c \
+	pthread_cleanup/cleanup0.c pthread_cleanup/cleanup1.c \
+	pthread_cleanup/cleanup2.c pthread_cleanup/cleanup3.c \
+	pthread_cond/condvar1.c pthread_cond/condvar1_1.c \
+	pthread_cond/condvar1_2.c pthread_cond/condvar2.c \
+	pthread_cond/condvar2_1.c pthread_cond/condvar3.c \
+	pthread_cond/condvar3_1.c pthread_cond/condvar3_2.c \
+	pthread_cond/condvar3_3.c pthread_cond/condvar4.c \
+	pthread_cond/condvar5.c pthread_cond/condvar6.c \
+	pthread_cond/condvar7.c pthread_cond/condvar8.c \
+	pthread_cond/condvar9.c pthread_create/create1.c \
+	pthread_create/create2.c pthread_create/create3.c \
+	pthread_exit/exit2.c pthread_exit/exit3.c pthread_exit/exit4.c \
+	pthread_exit/exit5.c pthread_join/join1.c pthread_join/join2.c \
+	pthread_join/join3.c pthread_misc/context1.c \
+	pthread_misc/count1.c pthread_misc/delay1.c \
+	pthread_misc/delay2.c pthread_misc/detach1.c \
+	pthread_misc/equal1.c pthread_misc/errno1.c \
+	pthread_misc/eyal1.c pthread_misc/inherit1.c \
+	pthread_misc/kill1.c pthread_misc/name.c pthread_misc/reuse1.c \
 	pthread_misc/reuse2.c pthread_misc/self1.c \
 	pthread_misc/self2.c pthread_misc/stress1.c \
 	pthread_misc/valid1.c pthread_misc/valid2.c \
@@ -1050,33 +1054,33 @@ DIST_SOURCES = $(libbenchlib_a_SOURCES) benchtests/benchtest1.c \
 	clock/t_nanosleep.c exceptions/exception1.c \
 	exceptions/exception2.c exceptions/exception3.c \
 	misc/loadfree.c misc/tryentercs.c misc/tryentercs2.c \
-	pthread_barrier/barrier1.c pthread_barrier/barrier2.c \
-	pthread_barrier/barrier3.c pthread_barrier/barrier4.c \
-	pthread_barrier/barrier5.c pthread_barrier/barrier6.c \
-	pthread_cancel/cancel1.c pthread_cancel/cancel2.c \
-	pthread_cancel/cancel3.c pthread_cancel/cancel4.c \
-	pthread_cancel/cancel5.c pthread_cancel/cancel6a.c \
-	pthread_cancel/cancel6d.c pthread_cancel/cancel7.c \
-	pthread_cancel/cancel8.c pthread_cleanup/cleanup0.c \
-	pthread_cleanup/cleanup1.c pthread_cleanup/cleanup2.c \
-	pthread_cleanup/cleanup3.c pthread_cond/condvar1.c \
-	pthread_cond/condvar1_1.c pthread_cond/condvar1_2.c \
-	pthread_cond/condvar2.c pthread_cond/condvar2_1.c \
-	pthread_cond/condvar3.c pthread_cond/condvar3_1.c \
-	pthread_cond/condvar3_2.c pthread_cond/condvar3_3.c \
-	pthread_cond/condvar4.c pthread_cond/condvar5.c \
-	pthread_cond/condvar6.c pthread_cond/condvar7.c \
-	pthread_cond/condvar8.c pthread_cond/condvar9.c \
-	pthread_create/create1.c pthread_create/create2.c \
-	pthread_create/create3.c pthread_exit/exit2.c \
-	pthread_exit/exit3.c pthread_exit/exit4.c pthread_exit/exit5.c \
-	pthread_join/join1.c pthread_join/join2.c pthread_join/join3.c \
-	pthread_misc/context1.c pthread_misc/count1.c \
-	pthread_misc/delay1.c pthread_misc/delay2.c \
-	pthread_misc/detach1.c pthread_misc/equal1.c \
-	pthread_misc/errno1.c pthread_misc/eyal1.c \
-	pthread_misc/inherit1.c pthread_misc/kill1.c \
-	pthread_misc/name.c pthread_misc/reuse1.c \
+	misc/wait_timeout.c pthread_barrier/barrier1.c \
+	pthread_barrier/barrier2.c pthread_barrier/barrier3.c \
+	pthread_barrier/barrier4.c pthread_barrier/barrier5.c \
+	pthread_barrier/barrier6.c pthread_cancel/cancel1.c \
+	pthread_cancel/cancel2.c pthread_cancel/cancel3.c \
+	pthread_cancel/cancel4.c pthread_cancel/cancel5.c \
+	pthread_cancel/cancel6a.c pthread_cancel/cancel6d.c \
+	pthread_cancel/cancel7.c pthread_cancel/cancel8.c \
+	pthread_cleanup/cleanup0.c pthread_cleanup/cleanup1.c \
+	pthread_cleanup/cleanup2.c pthread_cleanup/cleanup3.c \
+	pthread_cond/condvar1.c pthread_cond/condvar1_1.c \
+	pthread_cond/condvar1_2.c pthread_cond/condvar2.c \
+	pthread_cond/condvar2_1.c pthread_cond/condvar3.c \
+	pthread_cond/condvar3_1.c pthread_cond/condvar3_2.c \
+	pthread_cond/condvar3_3.c pthread_cond/condvar4.c \
+	pthread_cond/condvar5.c pthread_cond/condvar6.c \
+	pthread_cond/condvar7.c pthread_cond/condvar8.c \
+	pthread_cond/condvar9.c pthread_create/create1.c \
+	pthread_create/create2.c pthread_create/create3.c \
+	pthread_exit/exit2.c pthread_exit/exit3.c pthread_exit/exit4.c \
+	pthread_exit/exit5.c pthread_join/join1.c pthread_join/join2.c \
+	pthread_join/join3.c pthread_misc/context1.c \
+	pthread_misc/count1.c pthread_misc/delay1.c \
+	pthread_misc/delay2.c pthread_misc/detach1.c \
+	pthread_misc/equal1.c pthread_misc/errno1.c \
+	pthread_misc/eyal1.c pthread_misc/inherit1.c \
+	pthread_misc/kill1.c pthread_misc/name.c pthread_misc/reuse1.c \
 	pthread_misc/reuse2.c pthread_misc/self1.c \
 	pthread_misc/self2.c pthread_misc/stress1.c \
 	pthread_misc/valid1.c pthread_misc/valid2.c \
@@ -1481,6 +1485,7 @@ benchtests_benchtest2_LDADD = libbenchlib.a $(LDADD)
 benchtests_benchtest3_LDADD = libbenchlib.a $(LDADD)
 benchtests_benchtest4_LDADD = libbenchlib.a $(LDADD)
 benchtests_benchtest5_LDADD = libbenchlib.a $(LDADD)
+misc_wait_timeout_LDADD =
 TESTS = $(check_PROGRAMS)
 all: all-am
 
@@ -1654,6 +1659,12 @@ misc/tryentercs2.$(OBJEXT): misc/$(am__dirstamp) \
 misc/tryentercs2$(EXEEXT): $(misc_tryentercs2_OBJECTS) $(misc_tryentercs2_DEPENDENCIES) $(EXTRA_misc_tryentercs2_DEPENDENCIES) misc/$(am__dirstamp)
 	@rm -f misc/tryentercs2$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(misc_tryentercs2_OBJECTS) $(misc_tryentercs2_LDADD) $(LIBS)
+misc/wait_timeout.$(OBJEXT): misc/$(am__dirstamp) \
+	misc/$(DEPDIR)/$(am__dirstamp)
+
+misc/wait_timeout$(EXEEXT): $(misc_wait_timeout_OBJECTS) $(misc_wait_timeout_DEPENDENCIES) $(EXTRA_misc_wait_timeout_DEPENDENCIES) misc/$(am__dirstamp)
+	@rm -f misc/wait_timeout$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(misc_wait_timeout_OBJECTS) $(misc_wait_timeout_LDADD) $(LIBS)
 pthread_barrier/$(am__dirstamp):
 	@$(MKDIR_P) pthread_barrier
 	@: > pthread_barrier/$(am__dirstamp)
@@ -2513,6 +2524,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@misc/$(DEPDIR)/loadfree.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@misc/$(DEPDIR)/tryentercs.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@misc/$(DEPDIR)/tryentercs2.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@misc/$(DEPDIR)/wait_timeout.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@pthread_barrier/$(DEPDIR)/barrier1.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@pthread_barrier/$(DEPDIR)/barrier2.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@pthread_barrier/$(DEPDIR)/barrier3.Po@am__quote@ # am--include-marker
@@ -3842,6 +3854,13 @@ semaphore/semaphore5.log: semaphore/semaphore5$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+misc/wait_timeout.log: misc/wait_timeout$(EXEEXT)
+	@p='misc/wait_timeout$(EXEEXT)'; \
+	b='misc/wait_timeout'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -3989,6 +4008,7 @@ distclean: distclean-am
 	-rm -f misc/$(DEPDIR)/loadfree.Po
 	-rm -f misc/$(DEPDIR)/tryentercs.Po
 	-rm -f misc/$(DEPDIR)/tryentercs2.Po
+	-rm -f misc/$(DEPDIR)/wait_timeout.Po
 	-rm -f pthread_barrier/$(DEPDIR)/barrier1.Po
 	-rm -f pthread_barrier/$(DEPDIR)/barrier2.Po
 	-rm -f pthread_barrier/$(DEPDIR)/barrier3.Po
@@ -4172,6 +4192,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f misc/$(DEPDIR)/loadfree.Po
 	-rm -f misc/$(DEPDIR)/tryentercs.Po
 	-rm -f misc/$(DEPDIR)/tryentercs2.Po
+	-rm -f misc/$(DEPDIR)/wait_timeout.Po
 	-rm -f pthread_barrier/$(DEPDIR)/barrier1.Po
 	-rm -f pthread_barrier/$(DEPDIR)/barrier2.Po
 	-rm -f pthread_barrier/$(DEPDIR)/barrier3.Po
