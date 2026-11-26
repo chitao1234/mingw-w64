@@ -295,7 +295,7 @@ _pthread_get_tick_count (long long *frequency)
 
   if (*frequency == 0)
   {
-    if (QueryPerformanceFrequency (&freq))
+    if (QueryPerformanceFrequency (&freq) && freq.QuadPart >= 1000)
       *frequency = freq.QuadPart;
     else
       *frequency = -1;
@@ -304,8 +304,26 @@ _pthread_get_tick_count (long long *frequency)
   if (*frequency > 0 && QueryPerformanceCounter (&timestamp))
     return timestamp.QuadPart / (*frequency / 1000);
 
-  /* Fallback */
+  /* Keep using the fallback for the rest of this wait. */
+  *frequency = -1;
   return GetTickCount ();
+}
+
+static unsigned long long
+_pthread_get_elapsed_time (unsigned long long start_time, long long *frequency)
+{
+  long long previous_frequency = *frequency;
+  unsigned long long current_time = _pthread_get_tick_count (frequency);
+
+  /* If QPC fails during a wait, accept the native timeout rather than
+   * comparing timestamps from different clocks. */
+  if (*frequency != previous_frequency)
+    return ~0ULL;
+
+  /* GetTickCount wraps at 2^32 ms; every finite wait is shorter than that. */
+  if (*frequency < 0)
+    return (DWORD) (current_time - start_time);
+  return current_time - start_time;
 }
 
 /* A wrapper around WaitForSingleObject() that ensures that
@@ -319,7 +337,7 @@ unsigned long
 _pthread_wait_for_single_object (void *handle, unsigned long timeout)
 {
   DWORD result;
-  unsigned long long start_time, end_time;
+  unsigned long long start_time;
   unsigned long wait_time;
   long long frequency = 0;
 
@@ -327,22 +345,21 @@ _pthread_wait_for_single_object (void *handle, unsigned long timeout)
     return WaitForSingleObject ((HANDLE) handle, (DWORD) timeout);
 
   start_time = _pthread_get_tick_count (&frequency);
-  end_time = start_time + timeout;
   wait_time = timeout;
 
   do
   {
-    unsigned long long current_time;
+    unsigned long long elapsed_time;
 
     result = WaitForSingleObject ((HANDLE) handle, (DWORD) wait_time);
     if (result != WAIT_TIMEOUT)
       break;
 
-    current_time = _pthread_get_tick_count (&frequency);
-    if (current_time >= end_time)
+    elapsed_time = _pthread_get_elapsed_time (start_time, &frequency);
+    if (elapsed_time >= timeout)
       break;
 
-    wait_time = (DWORD) (end_time - current_time);
+    wait_time = timeout - (DWORD) elapsed_time;
   } while (TRUE);
 
   return result;
@@ -359,7 +376,7 @@ unsigned long
 _pthread_wait_for_multiple_objects (unsigned long count, void **handles, unsigned int all, unsigned long timeout)
 {
   DWORD result;
-  unsigned long long start_time, end_time;
+  unsigned long long start_time;
   unsigned long wait_time;
   long long frequency = 0;
 
@@ -367,22 +384,21 @@ _pthread_wait_for_multiple_objects (unsigned long count, void **handles, unsigne
     return WaitForMultipleObjects ((DWORD) count, (HANDLE *) handles, all, (DWORD) timeout);
 
   start_time = _pthread_get_tick_count (&frequency);
-  end_time = start_time + timeout;
   wait_time = timeout;
 
   do
   {
-    unsigned long long current_time;
+    unsigned long long elapsed_time;
 
     result = WaitForMultipleObjects ((DWORD) count, (HANDLE *) handles, all, (DWORD) wait_time);
     if (result != WAIT_TIMEOUT)
       break;
 
-    current_time = _pthread_get_tick_count (&frequency);
-    if (current_time >= end_time)
+    elapsed_time = _pthread_get_elapsed_time (start_time, &frequency);
+    if (elapsed_time >= timeout)
       break;
 
-    wait_time = (DWORD) (end_time - current_time);
+    wait_time = timeout - (DWORD) elapsed_time;
   } while (TRUE);
 
   return result;
